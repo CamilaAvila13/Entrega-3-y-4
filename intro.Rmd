@@ -1,0 +1,26 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+ComexPerú. (2022, 18 de febrero). Índice de Percepción de la Corrupción 2021: el Perú retrocede once posiciones y ocupa el puesto 105 de 180 economías. ComexPerú. 
+https://www.comexperu.org.pe/articulo/indice-de-percepcion-de-la-corrupcion-2021-el-peru-retrocede-once-posiciones-y-ocupa-el-puesto-105-de-180-economias 
+
+```{r setup, include=FALSE}
+library(dygraphs)
+```
+
+Row {data-height=600}
+-------------------------------------
+
+### Percepción de la corrupción en el Perú 2021
+
+--- 
+
+A partir de la imagen del Índice de Percepción de la Corrupción (IPC) entre 2018 y 2021, se observa que el Perú se mantiene de manera sostenida entre las peores posiciones de la región, ocupando lugares cercanos al puesto 100. Esta tendencia externa coincide plenamente con los resultados de mi análisis estadístico: los ciudadanos peruanos perciben altos niveles de corrupción debido a factores como la baja transparencia institucional, la escasa confianza pública y la debilidad del respeto institucional, que en conjunto explican casi el 90% de la percepción de corrupción según el modelo de regresión. Mientras países como Uruguay o Chile exhiben posiciones más favorables, asociadas a instituciones más sólidas y transparentes, el caso peruano refleja una cultura política marcada por la desconfianza y por evaluaciones institucionales críticas, tal como también lo mostraron el análisis factorial y los clúster. En ese sentido, la evidencia internacional presentada en el IPC respalda y contextualiza los hallazgos de este estudio, mostrando que la percepción de corrupción en el Perú no es un fenómeno aislado sino un patrón persistente tanto a nivel ciudadano como regional.
+
+
+
+
