@@ -1,0 +1,108 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+
+# << AQUÍ PEGAS TU CÓDIGO DE LIMPIEZA COMPLETO >>
+# por ejemplo:
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+  select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Visualizaciones {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de barras de error
+
+```{r}
+library(dplyr)
+
+peru_error <- peru_final %>%
+  group_by(Tolerancia) %>%
+  summarise(
+    media = mean(Percepcion),
+    se = sd(Percepcion) / sqrt(n())
+  )
+
+ggplot(peru_error, aes(x = Tolerancia, y = media)) +
+  geom_col(fill = "lightblue") +
+  geom_errorbar(aes(ymin = media - se, ymax = media + se), width = 0.2) +
+  labs(
+    title = "Percepción promedio con barras de error por nivel de Tolerancia",
+    x = "Tolerancia",
+    y = "Media de Percepción"
+  )
+```
+
+Visualizaciones2 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de barras 
+
+```{r}
+independientes <- c("Confianza", "Participacion", "Respeto", "Transparencia", "Tolerancia")
+
+peru_B <- peru_final %>%
+  pivot_longer(
+    cols = all_of(independientes),
+    names_to = "Variable",
+    values_to = "Nivel"
+  )
+peru_all <- peru_B %>%
+  group_by(Variable, Nivel) %>%
+  summarise( media = mean(Percepcion), se = sd(Percepcion) / sqrt(n()))
+ggplot(peru_all, aes(x = factor(Nivel), y = media, fill = Variable)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+  geom_errorbar(
+    aes(ymin = media - se, ymax = media + se),
+    position = position_dodge(width = 0.8),
+    width = 0.2
+  ) +
+  labs(
+    title = "Media de Percepción por niveles de todas las variables independientes",
+    x = "Nivel de la variable",
+    y = "Media de Percepción"
+  ) +
+  theme_bw()
+```
+
+
+
