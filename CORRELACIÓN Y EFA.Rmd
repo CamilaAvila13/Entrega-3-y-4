@@ -1,0 +1,143 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+
+# << AQUÍ PEGAS TU CÓDIGO DE LIMPIEZA COMPLETO >>
+# por ejemplo:
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+  select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Tablas {data-icon="fa-table"}
+=====================================     
+
+### Tabla 1
+    
+```{r}
+library(dplyr)
+library(ggplot2)
+
+vars_corr <- peru_final %>%
+  select(Percepcion, Confianza, Participacion, Respeto, Transparencia, Tolerancia)
+
+corr_matrix <- cor(vars_corr, use = "pairwise.complete.obs")
+corr_matrix
+```
+
+Tablas2 {data-icon="fa-table"}
+=====================================
+
+### Tabla 2
+
+```{r}
+corr_df <- as.data.frame(as.table(round(corr_matrix, 2)))
+colnames(corr_df) <- c("Var1", "Var2", "value")
+head(corr_df)
+```
+
+Visualizaciones {data-icon="fa-signal"}
+===================================== 
+    
+### Gráfico de correlación   
+```{r}
+ggplot(corr_df, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red",
+    midpoint = 0, limits = c(-1, 1),
+    name = "Correlación"
+  ) +
+  geom_text(aes(label = value), size = 3) +
+  labs(
+    title = "Matriz de correlación entre Percepción y variables independientes",
+    x = "",
+    y = ""
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+Tablas3 {data-icon="fa-table"}
+=====================================     
+
+### Tabla KMO
+    
+```{r}
+Peru_factor <- peru_final %>%
+  select(Confianza, Participacion, Respeto, Transparencia, Tolerancia)
+Peru_factor_scaled <- scale(Peru_factor)
+KMO(Peru_factor_scaled)  
+cortest.bartlett(Peru_factor_scaled) 
+```
+
+Tablas4 {data-icon="fa-table"}
+===================================== 
+
+### Tabla 4
+
+```{r}
+fa_result <- fa(Peru_factor_scaled, nfactors = 2, rotate = "varimax")
+fa_result
+```
+
+Visualizaciones2 {data-icon="fa-signal"}
+===================================== 
+    
+### Gráfico EFA
+```{r}
+library(ggplot2)
+
+loadings_df <- as.data.frame(fa_result$loadings[1:ncol(Peru_factor_scaled), ])
+loadings_df$Variable <- rownames(loadings_df)
+
+ggplot(loadings_df, aes(x = MR1, y = MR2, label = Variable)) +  
+  geom_point(color = "blue", size = 3) +
+  geom_text(vjust = -0.5) +
+  labs(
+    title = "Cargas factoriales (EFA)",
+    x = "Factor 1",
+    y = "Factor 2"
+  ) +
+  theme_minimal()
+```
