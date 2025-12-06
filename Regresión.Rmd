@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+  select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+### Regresión 
+
+```{r}
+modelo1 <- lm(Percepcion ~ Confianza + Participacion + Respeto + Transparencia + Tolerancia, data = peru_final)
+summary(modelo1)
+```
+
