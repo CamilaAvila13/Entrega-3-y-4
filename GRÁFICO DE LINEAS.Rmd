@@ -1,0 +1,175 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+
+# << AQUÍ PEGAS TU CÓDIGO DE LIMPIEZA COMPLETO >>
+# por ejemplo:
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+  select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Visualizaciones {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de líneas 1 
+
+```{r}
+peru_line <- peru_final %>%
+  group_by(Confianza) %>%
+  summarise(media_percepcion = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Confianza, y = media_percepcion)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Media de Percepción según niveles de Confianza",
+    x = "Confianza",
+    y = "Percepción promedio"
+  )
+```
+
+Visualizaciones2 {data-icon="fa-signal"}
+===================================== 
+
+```{r}
+peru_line <- peru_final %>%
+  group_by(Participacion) %>%
+  summarise(media_percepcion = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Participacion, y = media_percepcion)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Media de Percepción según niveles de Confianza",
+    x = "Confianza",
+    y = "Percepción promedio"
+  )
+```
+
+Visualizaciones3 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de líneas 3 
+
+```{r}
+peru_line <- peru_final %>%
+  group_by(Respeto) %>%
+  summarise(media_percepcion = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Respeto, y = media_percepcion)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Media de Percepción según niveles de Confianza",
+    x = "Confianza",
+    y = "Percepción promedio"
+  )
+```
+
+Visualizaciones4 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de líneas 4
+
+```{r}
+peru_line <- peru_final %>%
+  group_by(Transparencia) %>%
+  summarise(media_percepcion = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Transparencia, y = media_percepcion)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Media de Percepción según niveles de Confianza",
+    x = "Confianza",
+    y = "Percepción promedio"
+  )
+```
+
+Visualizaciones5 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de líneas 5 
+
+```{r}
+peru_line <- peru_final %>%
+  group_by(Tolerancia) %>%
+  summarise(media_percepcion = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Tolerancia, y = media_percepcion)) +
+  geom_line(color = "blue", linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Media de Percepción según niveles de Confianza",
+    x = "Confianza",
+    y = "Percepción promedio"
+  )
+```
+Visualizaciones6 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de líneas múltiple
+
+```{r}
+independientes <- c("Confianza", "Participacion", "Respeto",
+                    "Transparencia", "Tolerancia")
+
+peru_long <- peru_final %>%
+  pivot_longer(
+    cols = all_of(independientes),
+    names_to = "Variable",
+    values_to = "Nivel"
+  )
+peru_line <- peru_long %>%
+  group_by(Variable, Nivel) %>%
+  summarise(media = mean(Percepcion))
+
+ggplot(peru_line, aes(x = Nivel, y = media, color = Variable, group = Variable)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Percepción promedio por niveles de cada variable independiente",
+    x = "Nivel",
+    y = "Media de Percepción"
+  ) +
+  theme_bw()
+```
