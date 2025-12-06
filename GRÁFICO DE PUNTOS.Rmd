@@ -1,0 +1,143 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Visualizaciones {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de puntos 1: En este gráfico se observa que, a medida que cambia el nivel de confianza institucional, la media de percepción de corrupción solo varía de forma suave.
+
+```{r}
+library(ggplot2)
+ggplot(peru_final, aes(x = Confianza, y = Percepcion)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Percepción vs Confianza",
+    x = "Confianza en las instituciones",
+    y = "Percepción de la corrupción"
+  )
+```
+
+---
+
+
+Visualizaciones2 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de puntos 2: Aquí se ve que los cambios en la participación política o comunitaria se asocian con variaciones en la percepción promedio de corrupción. En general, los niveles más altos de participación se relacionan con una percepción igual o ligeramente mayor de corrupción.
+
+```{r}
+ggplot(peru_final, aes(x = Participacion, y = Percepcion)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Percepción vs Participación",
+    x = "Participación política/social",
+    y = "Percepción de la corrupción"
+  )
+```
+
+---
+
+
+Visualizaciones3 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de puntos 3: En este caso se aprecia que cuando el respeto a las instituciones es bajo, la percepción de corrupción es más alta, y a medida que aumenta el respeto, la percepción tiende a disminuir.
+
+```{r}
+ggplot(peru_final, aes(x = Respeto, y = Percepcion)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Percepción vs Respeto",
+    x = "Respeto a las instituciones",
+    y = "Percepción de la corrupción"
+  )
+```
+
+---
+
+
+Visualizaciones4 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de puntos 4: Este gráfico muestra una relación claramente negativa: cuando la transparencia percibida es baja, la media de percepción de corrupción es alta; y conforme aumenta la transparencia, la percepción de corrupción disminuye de forma muy marcada.
+
+```{r}
+ggplot(peru_final, aes(x = Transparencia, y = Percepcion)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Percepción vs Transparencia",
+    x = "Transparencia del Estado",
+    y = "Percepción de la corrupción"
+  )
+```
+
+---
+
+
+Visualizaciones5 {data-icon="fa-signal"}
+===================================== 
+
+### Gráfico de puntos 5: En este gráfico se observa que los niveles bajos de tolerancia a la corrupción se asocian con una percepción promedio más alta del problema, mientras que, a medida que la tolerancia aumenta, la percepción de corrupción disminuye.
+
+```{r}
+ggplot(peru_final, aes(x = Tolerancia, y = Percepcion)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Percepción vs Tolerancia a la corrupción",
+    x = "Tolerancia hacia la corrupción",
+    y = "Percepción de la corrupción"
+  )
+```
+
+---
+
+
+
