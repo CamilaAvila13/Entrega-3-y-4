@@ -1,0 +1,236 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+```{r}
+library(rio)
+library(cluster)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(psych)        
+library(FactoMineR) 
+library(factoextra) 
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+peru_raw <- import("PER_2021_LAPOP_AmericasBarometer_v1.2_w (1).dta")
+
+peru <- peru_raw %>%
+select(
+     Percepcion = exc7new,
+     Confianza = anestg,
+     Participacion = wvsi2,
+     Respeto = b6,
+     Transparencia = exc6,
+     Tolerancia = pn4
+  )
+
+colSums(is.na(peru))
+peru_limpio <- peru %>% drop_na(Participacion)
+peru_limpio <- peru %>% filter(!if_all(everything(), is.na))
+colSums(is.na(peru_limpio))
+peru_cambio <- peru_limpio %>% 
+  mutate(across(everything(), ~ .x + 1))
+peru_final <- peru_cambio %>% 
+  mutate(across(everything(), ~ ifelse(is.na(.x), 0, .x)))
+```
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Visualizaciones {data-icon="fa-signal"}
+===================================== 
+    
+### Índice para determinar K
+
+```{r}
+cluster_vars <- peru_final %>%
+  select(Confianza, Participacion, Respeto, Transparencia, Tolerancia)
+cluster_scaled <- scale(cluster_vars)
+```
+```{r}
+fviz_nbclust(cluster_scaled, kmeans, method = "silhouette") +
+  labs(title = "Índice de Silueta para determinar K")
+```
+
+
+### Visualización de clusters PCA 
+
+```{r}
+set.seed(123)
+k2 <- kmeans(cluster_scaled, centers = 2, nstart = 25)
+peru_final$cluster_k2 <- factor(k2$cluster)
+```
+```{r}
+fviz_cluster(
+  k2, 
+  data = cluster_scaled, 
+  geom = "point",
+  ellipse.type = "convex",
+  show.clust.cent = TRUE,
+  main = "Visualización de clusters mediante PCA (K=2)"
+)
+```
+
+
+
+Tablas {data-icon="fa-table"}
+=====================================     
+
+### Tablas 1
+    
+```{r}
+cluster_profile <- peru_final %>%
+  group_by(cluster_k2) %>%
+  summarise(
+    Confianza = mean(Confianza),
+    Participacion = mean(Participacion),
+    Respeto = mean(Respeto),
+    Transparencia = mean(Transparencia),
+    Tolerancia = mean(Tolerancia)
+  )
+
+cluster_profile
+```
+  
+Visualizaciones2 {data-icon="fa-signal"}
+===================================== 
+    
+### AGNES
+    
+```{r}
+agnes_res <- agnes(cluster_scaled, method = "ward")
+```
+```{r}
+
+fviz_dend(
+  as.hclust(agnes_res),
+  k = 2,
+  show_labels = FALSE,
+  main = "AGNES"
+)
+```
+
+
+
+Tablas2 {data-icon="fa-table"}
+=====================================     
+
+### Tablas 2
+    
+```{r}
+agnes_clusters <- cutree(as.hclust(agnes_res), k = 2)
+table(agnes_clusters)
+```
+   
+Visualizaciones3 {data-icon="fa-signal"}
+===================================== 
+
+### DIANA
+
+```{r}
+library(cluster)
+
+cluster_vars <- peru_final %>%
+  select(Confianza, Participacion, Respeto, Transparencia, Tolerancia)
+
+cluster_scaled <- scale(cluster_vars)
+
+diana_res <- diana(cluster_scaled)
+
+fviz_dend(
+  as.hclust(diana_res),
+  k = 2,              
+  rect = TRUE,        
+  show_labels = FALSE,
+  main = "DIANA",
+  xlab = "Observaciones",
+  ylab = "Altura"
+)
+```
+
+
+
+Tablas3 {data-icon="fa-table"}
+=====================================     
+
+### Tablas 3
+    
+```{r}
+diana_clusters <- cutree(as.hclust(diana_res), k = 2)
+table(diana_clusters)
+```  
+
+Visualizaciones4 {data-icon="fa-signal"}
+===================================== 
+    
+### PAM
+    
+```{r}
+pam_res <- pam(cluster_scaled, k = 2)
+fviz_cluster(pam_res, geom = "point",
+             main = "Clusters PAM (k = 2)")
+```
+ 
+---
+
+Algún comentario al respecto.
+
+### PAM
+
+```{r}
+fviz_silhouette(pam_res)
+```
+
+
+
+Tablas4 {data-icon="fa-table"}
+=====================================     
+
+### Tablas 4
+    
+```{r}
+pam_res$medoids
+```
+    
+### Tablas 5
+
+```{r}
+peru_final$cluster_pam <- pam_res$clustering
+cluster_profile_pam <- peru_final %>%
+  group_by(cluster_pam) %>%
+  summarise(
+    Confianza     = mean(Confianza),
+    Participacion = mean(Participacion),
+    Respeto       = mean(Respeto),
+    Transparencia = mean(Transparencia),
+    Tolerancia    = mean(Tolerancia)
+  )
+
+cluster_profile_pam
+```
+   
+Tablas5 {data-icon="fa-table"}
+=====================================   
+
+### Tablas 6
+    
+```{r}
+table(Kmeans = peru_final$cluster_k2, AGNES = agnes_clusters)
+table(Kmeans = peru_final$cluster_k2, PAM = peru_final$cluster_pam)
+```
+Tablas6 {data-icon="fa-table"}
+=====================================      
+
+### Tablas 7
+
+```{r}
+cluster_profile
+cluster_profile_pam
+```
